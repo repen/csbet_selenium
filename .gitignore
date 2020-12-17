@@ -1,0 +1,12 @@
+Scan.py
+chromedriver
+extension/
+javascriptFirefox.js
+screen.png
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+venv
+.idea
+

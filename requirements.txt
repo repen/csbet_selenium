@@ -1,0 +1,7 @@
+fake-useragent==0.1.11
+peewee==3.13.3
+pkg-resources==0.0.0
+redis==3.5.2
+selenium==3.141.0
+selenium-wire==1.0.11
+urllib3==1.25.8
