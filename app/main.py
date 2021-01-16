@@ -1,43 +1,45 @@
 # http://docs.cntd.ru/document/gost-19-701-90-espd
-import redis, pickle
-from Globals import LOGIN, PASSWORD, REDIS_HOST, REDIS_PORT
+import os, time
+from Globals import LOGIN, PASSWORD, SITE
 from Model import HtmlData
 from datetime import datetime
+from itertools import count
 
-Redis = redis.StrictRedis( host=REDIS_HOST, port=REDIS_PORT, db=0 )
-Redis.flushdb()
-
-from selenium import webdriver, common
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import time
-from tools import log, hash_
+from tools import log
 from fake_useragent import UserAgent
-log_content  = log("CONTENT", "/logs/content.log")
+log_content  = log("MAIN")
 ua = UserAgent()
 userAgent = ua.random
-URL = "https://betscsgo.cc/"
+URL = SITE
+WAITH = 40
+
 print(userAgent)
+
 def init_driver():
     co = Options()
     co.add_argument('user-agent={}'.format(userAgent))
-    co.add_argument('--headless')
-    co.add_argument('--no-sandbox')
+    # co.add_argument('--headless')
+    # co.add_argument('--no-sandbox')
     co.add_argument('--disable-dev-shm-usage')
+    co.add_argument("--start-maximized")
+    co.add_argument("--disable-blink-features=AutomationControlled")
+    # co.add_argument("--start-fullscreen")
     # disable infobars
     co.add_argument('--disable-infobars')
 
-    co.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+
+    # co.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+    co.add_experimental_option("excludeSwitches", ["enable-automation"])
+    co.add_experimental_option('useAutomationExtension', False)
     chrome_prefs = {}
-    chrome_prefs["profile.default_content_settings"] = {"images": 2}
-    chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
+    # chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    # chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
     co.add_experimental_option("prefs", chrome_prefs)
-    driver = webdriver.Chrome(chrome_options=co)
+    driver = webdriver.Chrome(
+        os.path.join(os.getcwd(), "chromedriver"), options=co)
     return driver
-
-class Browser:
-
-    def __init__(self):
-        self.driver = init_driver()
 
 def scene(driver):
     driver.execute_script('document.querySelector("a.userbar-login").click()')
@@ -50,85 +52,69 @@ def scene(driver):
     btn.click()
     time.sleep(5)
 
+def prepare_site(driver):
+    driver.get(URL)
+    time.sleep(5)
+    driver.execute_script('window.open("https://betscsgo.in/");')
+    time.sleep(10)
+    driver.switch_to.window(driver.window_handles[0])
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
+
+def work(driver, url):
+    log_content.debug("Get %s", url)
+    driver.get(url)
+    time.sleep(10)
+    html = str( driver.page_source )
+    # if len( html ) < 150000:
+    #     log_content.debug("Page size less 150000 byte")
+    #     return
+    
+    log_content.debug("Response %s. Length: %d", url, len( html ) )
+    
+
+    HtmlData.insert( {
+        "html" : html,
+        "m_time": datetime.now().timestamp(),
+        } ).execute()
+
+
+    log_content.debug("Write to db")
+    HtmlData.auto_clear_db()
+    log_content.debug("End Job")
+
 def main():
-    chrome = Browser()
-    driver = chrome.driver
-    def __main():
-        log_content.debug("starting chrome")
-        log_content.debug("open page {}".format(URL))
-        log_content.debug("starting autorization scene")
+    driver = init_driver()
 
-        try:
-            driver.get("https://betscsgo.cc/")
-            log_content.debug("wait 40 second for load page")
-            time.sleep(40)
-            scene(driver)
-            log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
-        except ( common.exceptions.NoSuchElementException, common.exceptions.JavascriptException) as e:
-            log_content.error("Error Not element {}. This stop process.(scene(driver) error)".format(str(e)))
-            driver.close()
-            raise ValueError("Error Element")
-        log_content.debug("start cycle")
+    log_content.debug("starting chrome")
+    log_content.debug("open page {}".format(URL))
+    log_content.debug("starting autorization scene")
+    prepare_site(driver)
+    scene(driver)
+    log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
-        while True:
-            if Redis.get("stop"):
-                break
+    for _ in count():
+        work(driver, URL)
+        time.sleep(60)
 
-            task = Redis.get("get_html")
-            if task:
+def test_cloudscraper():
+    import cloudscraper
+    scraper = cloudscraper.create_scraper()  # returns a CloudScraper instance
+    print(scraper.get("https://betscsgo.in/").text)  # => "<!DOCTYPE html><html><head>..."
 
-                task = pickle.loads( task )
-                log_content.debug("task received {}".format( task ))
-                driver.get( task['url'] )
-                time.sleep(10)
-                html = str( driver.page_source )
-                if len( html ) < 150000:
-                    log_content.debug("Page size less 150000 byte")
-                    continue
-                Redis.set( task['m_id'], pickle.dumps( { "html" : html, "url" : task['url'] } ))
-                log_content.debug("response send. Data {}".format( len( html ) ))
-                Redis.delete( "get_html" )
+def test_selen():
+    dr = init_driver()
+    dr.get("https://betscsgo.cc/")
+    log_content.debug("wait 40 second for load page")
+    time.sleep(40)
 
+    screen = dr.get_screenshot_as_png()
+    with open("screen.png", "wb") as f:
+        f.write(screen)
 
-            log_content.debug("Get https://betscsgo.cc/")
-            driver.get("https://betscsgo.cc/")
-            time.sleep(10)
-            html = str( driver.page_source )
-            if len( html ) < 150000:
-                log_content.debug("Page size less 150000 byte")
-                continue
-            log_content.debug("Response https://betscsgo.cc/ . Length: {}".format( len( html ) ) )
-            
-
-            try:
-                HtmlData.insert( {
-                    "html" : html,
-                    "m_time": datetime.now().timestamp(),
-                    } ).execute()
-            except Exception:
-                log_content.error("Exception occurred", exc_info=True)
-
-
-            
-            log_content.debug("Write to db")
-            HtmlData.auto_clear_db()
-            
-            time.sleep(60)
-            
-        log_content.debug("End Job")
-
-    try:
-        __main()
-    except Exception as e:
-        log_content.error("Exception occurred", exc_info=True)
-        driver.close()
+    scene(dr)
 
 
 if __name__ == '__main__':
-    s = 30
-    while s:
-        main()
-        log_content.debug("Wait 30 sec for restart main")
-        time.sleep(30)
-        s = s - 1
+    main()
 

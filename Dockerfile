@@ -43,11 +43,12 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 ENV PYTHONUNBUFFERED=1
 
-ENV APP_HOME /usr/src/app
-WORKDIR /$APP_HOME
+ENV APP_HOME /script
+ENV BASE_DIR ${APP_HOME}
+WORKDIR $APP_HOME
 
-COPY ./app $APP_HOME/
+COPY ./app ${APP_HOME}
 
 #CMD tail -f /dev/null
-#CMD python3 main.py
-CMD ["python3", "/usr/src/app/main.py"]
+CMD python3 main.py
+#CMD ["python3", "/usr/src/app/main.py"]

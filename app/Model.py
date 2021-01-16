@@ -1,10 +1,8 @@
 from peewee import *
-from Globals import WORK_DIR
-from datetime import datetime
+from Globals import WORK_DIR, BASE_DIR
+import os
 
-from datetime import datetime
-db   = SqliteDatabase(WORK_DIR + '/data/database/datahtml.db')
-# db = SqliteDatabase("/home/repente/prog/python/kwork/selenium/betcsgo/DockerApp/app/datahtml.db") # html
+db = SqliteDatabase( os.path.join( BASE_DIR, "data", "datahtml.db" ) )
 
 
 class HtmlData(Model):
@@ -27,10 +25,8 @@ class HtmlData(Model):
     class Meta:
         database = db
 
-
 HtmlData.create_table()
+
 if __name__ == '__main__':
     query = HtmlData.select()
     print(len(query))
-# docker run --name selenium -v csbet:/usr/src/app/data --network=mynet selenium_docker
-# docker run -d --name selenium -v csbet:/usr/src/app/data --network=mynet selenium_docker
