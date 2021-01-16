@@ -1,25 +1,17 @@
-# http://docs.cntd.ru/document/gost-19-701-90-espd
 import os, time
 from Globals import LOGIN, PASSWORD, SITE
-from Model import HtmlData
-from datetime import datetime
 from itertools import count
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from tools import log
-from fake_useragent import UserAgent
 log_content  = log("MAIN")
-ua = UserAgent()
-userAgent = ua.random
 URL = SITE
-WAITH = 40
 
-print(userAgent)
+log_content.info( "Start script" )
 
 def init_driver():
     co = Options()
-    co.add_argument('user-agent={}'.format(userAgent))
     # co.add_argument('--headless')
     # co.add_argument('--no-sandbox')
     co.add_argument('--disable-dev-shm-usage')
@@ -38,7 +30,7 @@ def init_driver():
     # chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
     co.add_experimental_option("prefs", chrome_prefs)
     driver = webdriver.Chrome(
-        os.path.join(os.getcwd(), "chromedriver"), options=co)
+        os.path.join( os.getcwd(), "chromedriver"), options=co)
     return driver
 
 def scene(driver):
@@ -52,35 +44,14 @@ def scene(driver):
     btn.click()
     time.sleep(5)
 
-def prepare_site(driver):
-    driver.get(URL)
-    time.sleep(5)
-    driver.execute_script('window.open("https://betscsgo.in/");')
-    time.sleep(10)
-    driver.switch_to.window(driver.window_handles[0])
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
-
 def work(driver, url):
     log_content.debug("Get %s", url)
     driver.get(url)
     time.sleep(10)
     html = str( driver.page_source )
-    # if len( html ) < 150000:
-    #     log_content.debug("Page size less 150000 byte")
-    #     return
-    
+
     log_content.debug("Response %s. Length: %d", url, len( html ) )
-    
-
-    HtmlData.insert( {
-        "html" : html,
-        "m_time": datetime.now().timestamp(),
-        } ).execute()
-
-
     log_content.debug("Write to db")
-    HtmlData.auto_clear_db()
     log_content.debug("End Job")
 
 def main():
@@ -88,32 +59,17 @@ def main():
 
     log_content.debug("starting chrome")
     log_content.debug("open page {}".format(URL))
-    log_content.debug("starting autorization scene")
-    prepare_site(driver)
+    log_content.debug("starting auth scene")
+    driver.get(URL)
+    log_content.info("Waiting 30 sec")
+    time.sleep(30)
     scene(driver)
+    driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
     for _ in count():
         work(driver, URL)
         time.sleep(60)
-
-def test_cloudscraper():
-    import cloudscraper
-    scraper = cloudscraper.create_scraper()  # returns a CloudScraper instance
-    print(scraper.get("https://betscsgo.in/").text)  # => "<!DOCTYPE html><html><head>..."
-
-def test_selen():
-    dr = init_driver()
-    dr.get("https://betscsgo.cc/")
-    log_content.debug("wait 40 second for load page")
-    time.sleep(40)
-
-    screen = dr.get_screenshot_as_png()
-    with open("screen.png", "wb") as f:
-        f.write(screen)
-
-    scene(dr)
-
 
 if __name__ == '__main__':
     main()
