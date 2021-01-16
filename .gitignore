@@ -10,3 +10,6 @@ __pycache__/
 venv
 .idea
 
+app/data/*
+app/logs/*.log
+app/readme.md
