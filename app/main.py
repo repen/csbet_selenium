@@ -33,6 +33,18 @@ def init_driver():
         os.path.join( os.getcwd(), "chromedriver"), options=co)
     return driver
 
+def init_driver_firefox():
+    option = webdriver.FirefoxOptions()
+    option.add_argument('-profile')
+    option.add_argument('/home/andreydev/.mozilla/firefox/x6pmbecc.default-release')
+    option.set_preference('dom.webdriver.enabled', False)
+    option.set_preference('dom.webnotifications.enabled', False)
+    driver = webdriver.Firefox(executable_path="./geckodriver", options=option,
+                               service_args=['--marionette-port', '2828'])
+
+    return driver
+
+
 def scene(driver):
     driver.execute_script('document.querySelector("a.userbar-login").click()')
     time.sleep(5)
@@ -55,7 +67,7 @@ def work(driver, url):
     log_content.debug("End Job")
 
 def main():
-    driver = init_driver()
+    driver = init_driver_firefox()
 
     log_content.debug("starting chrome")
     log_content.debug("open page {}".format(URL))
@@ -63,7 +75,7 @@ def main():
     driver.get(URL)
     log_content.info("Waiting 30 sec")
     time.sleep(30)
-    scene(driver)
+    # scene(driver)
     driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
