@@ -1,7 +1,8 @@
+from datetime import datetime
 import os, time
-from Globals import LOGIN, PASSWORD, SITE
+from Globals import LOGIN, PASSWORD, SITE, BASE_DIR
 from itertools import count
-
+from Model import HtmlData, ResultPage
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from tools import log
@@ -64,25 +65,86 @@ def work(driver, url):
 
     log_content.debug("Response %s. Length: %d", url, len( html ) )
     log_content.debug("Write to db")
+
+    HtmlData.insert({
+        "m_time" : datetime.now().timestamp(),
+        "html" : html
+    }).execute()
+
     log_content.debug("End Job")
 
+def work_for_result_page(driver, m_id):
+    url = "https://betscsgo.in/match/{}".format( m_id )
+    log_content.debug("Get %s", url)
+    driver.get(url)
+    time.sleep(10)
+    html = str(driver.page_source)
+
+    log_content.debug("Response %s. Length: %d", url, len(html))
+    log_content.debug("Write to db")
+
+    ResultPage.insert({
+        "m_time": datetime.now().timestamp(),
+        "data": html,
+        "m_id" : m_id
+    }).execute()
+
+    log_content.debug("End Job")
+
+def check_task():
+    cache = set()
+    def _check_task():
+        path = os.path.join( BASE_DIR, "data", "task.txt" )
+        with open(path, "r", encoding="utf-8") as f:
+            _data = f.read().strip()
+        current_ids = set( int(x) for x in _data.split("\n") if x)
+        new_ids = current_ids.difference(cache)
+        for el in new_ids:
+            cache.add( el )
+        log_content.info("New m_id: %s", str( new_ids ) )
+        return new_ids
+    return _check_task
+
+def prepare(driver):
+    # driver = webdriver.Chrome()
+    driver.execute_script("window.open('https://betscsgo.in/','_blank');")
+    time.sleep(10)
+    driver.switch_to.window( driver.window_handles[0] )
+    driver.close()
+    driver.switch_to.window( driver.window_handles[0] )
+
 def main():
-    driver = init_driver_firefox()
+    # driver = init_driver_firefox()
+    driver = init_driver()
 
     log_content.debug("starting chrome")
     log_content.debug("open page {}".format(URL))
-    log_content.debug("starting auth scene")
     driver.get(URL)
-    log_content.info("Waiting 30 sec")
-    time.sleep(30)
-    # scene(driver)
+    log_content.info("Waiting 15 sec")
+    
+    time.sleep(15)
+    log_content.info("prepare browser")
+    prepare(driver)
+    log_content.debug("starting auth scene")
+    scene(driver)
     driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
+    _check_task = check_task()
+
     for _ in count():
         work(driver, URL)
+
+        result = _check_task()
+        if result:
+            for m_id in result:
+                work_for_result_page(driver, m_id)
+
         time.sleep(60)
 
 if __name__ == '__main__':
     main()
+    # check_task = check_task()
+    # result = check_task()
+    # print(result)
 
