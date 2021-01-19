@@ -127,6 +127,7 @@ def main():
     # prepare(driver)
     # log_content.debug("starting auth scene")
     # scene(driver)
+    # 
     driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
