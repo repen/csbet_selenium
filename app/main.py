@@ -123,10 +123,10 @@ def main():
     log_content.info("Waiting 15 sec")
     
     time.sleep(15)
-    log_content.info("prepare browser")
-    prepare(driver)
-    log_content.debug("starting auth scene")
-    scene(driver)
+    # log_content.info("prepare browser")
+    # prepare(driver)
+    # log_content.debug("starting auth scene")
+    # scene(driver)
     driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 
