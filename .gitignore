@@ -9,7 +9,7 @@ __pycache__/
 *$py.class
 venv
 .idea
-
+app/Test
 app/data/*
 app/logs/*.log
 app/readme.md
