@@ -66,10 +66,10 @@ def work(driver, url):
     log_content.debug("Response %s. Length: %d", url, len( html ) )
     log_content.debug("Write to db")
 
-    HtmlData.insert({
+    HtmlData.insert_remove({
         "m_time" : datetime.now().timestamp(),
         "html" : html
-    }).execute()
+    } )
 
     log_content.debug("End Job")
 
@@ -123,11 +123,12 @@ def main():
     log_content.info("Waiting 15 sec")
     
     time.sleep(15)
-    # log_content.info("prepare browser")
-    # prepare(driver)
-    # log_content.debug("starting auth scene")
-    # scene(driver)
-    # 
+    
+    log_content.info("prepare browser")
+    prepare(driver)
+    log_content.debug("starting auth scene")
+    scene(driver)
+    
     driver.get( URL )
     log_content.debug("Checked length page:  {}".format( len( driver.page_source ) ))
 

@@ -27,6 +27,25 @@ class HtmlData(Model):
 
         return None
 
+    @staticmethod
+    def insert_remove(data):
+        HtmlData.insert(data).execute()
+        HtmlData.autoremove()
+
+    @staticmethod
+    def count_row():
+        cursor = db.execute_sql( "SELECT count() FROM htmldata" )
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def autoremove():
+        if HtmlData.count_row() > 200:
+            ids = HtmlData.select( HtmlData.id ).limit(150)
+            for id_ in ids:
+                HtmlData.delete().where( HtmlData.id == id_).execute()
+
+
     class Meta:
         database = db
 
